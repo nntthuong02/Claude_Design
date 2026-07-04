@@ -1,0 +1,7 @@
+node_modules/
+canvas/dist/
+prompts/inbox.jsonl
+prompts/.seen
+prompts/attachments/
+.DS_Store
+*.log

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test · Đăng nhập</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: { brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' } },
+        },
+      },
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="font-sans bg-gradient-to-br from-slate-50 to-indigo-50 min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-sm">
+    <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-100 p-8">
+      <div class="flex items-center gap-2.5 mb-8">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+          <span class="text-white font-bold text-lg">A</span>
+        </div>
+        <span class="font-semibold text-slate-800 text-lg">Acme</span>
+      </div>
+
+      <h1 class="text-2xl font-bold text-slate-800 mb-1">Đăng nhập</h1>
+      <p class="text-sm text-slate-500 mb-7">Chào mừng quay lại. Nhập thông tin để tiếp tục.</p>
+
+      <form class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+          <input type="email" value="an.nguyen@example.com"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-sm font-medium text-slate-700">Mật khẩu</label>
+            <a href="#" class="text-xs font-medium text-brand-600 hover:text-brand-700">Quên mật khẩu?</a>
+          </div>
+          <input type="password" value="••••••••"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
+        </div>
+
+        <label class="flex items-center gap-2 text-sm text-slate-600 select-none">
+          <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500/30" />
+          Ghi nhớ đăng nhập
+        </label>
+
+        <button type="button"
+          class="w-full py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 active:scale-[0.99] transition shadow-sm shadow-brand-200">
+          Đăng nhập
+        </button>
+      </form>
+
+      <div class="flex items-center gap-3 my-6">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span class="text-xs text-slate-400">hoặc</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <button type="button"
+        class="w-full py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center justify-center gap-2.5">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.44 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75Z"/></svg>
+        Tiếp tục với Google
+      </button>
+    </div>
+
+    <p class="text-center text-sm text-slate-500 mt-6">
+      Chưa có tài khoản?
+      <a href="#" class="font-semibold text-brand-600 hover:text-brand-700">Đăng ký</a>
+    </p>
+  </div>
+</body>
+</html>

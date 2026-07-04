@@ -1,0 +1,17 @@
+{
+  "outputDir": "designs",
+  "contextProjects": [
+    {
+      "name": "example-project",
+      "path": "/Users/nnthuong/Workspace/IOS",
+      "notes": "Đổi path này sang dự án thật của bạn. Claude sẽ đọc tailwind.config, tokens màu, và các component ở đây để hiểu design system.",
+      "include": [
+        "tailwind.config.js",
+        "tailwind.config.ts",
+        "src/styles/**",
+        "src/components/**",
+        "package.json"
+      ]
+    }
+  ]
+}
