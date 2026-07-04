@@ -74,6 +74,17 @@ const INBOX = path.join(ROOT, "prompts", "inbox.jsonl");
 fs.mkdirSync(path.dirname(INBOX), { recursive: true });
 if (!fs.existsSync(INBOX)) fs.writeFileSync(INBOX, "");
 
+// Chat: hội thoại 2 chiều giữa người dùng (canvas) và Claude
+const CHAT = path.join(ROOT, "prompts", "chat.jsonl");
+if (!fs.existsSync(CHAT)) fs.writeFileSync(CHAT, "");
+
+function appendChat(msg) {
+  const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: Date.now(), ...msg };
+  fs.appendFileSync(CHAT, JSON.stringify(entry) + "\n");
+  broadcast("chat", entry);
+  return entry;
+}
+
 app.post("/api/prompt", (req, res) => {
   const prompt = (req.body && req.body.prompt ? String(req.body.prompt) : "").trim();
   const images = Array.isArray(req.body?.images) ? req.body.images : [];
@@ -94,9 +105,28 @@ app.post("/api/prompt", (req, res) => {
 
   const entry = { id, ts: Date.now(), status: "pending", prompt, images: savedImages, targetFile };
   fs.appendFileSync(INBOX, JSON.stringify(entry) + "\n");
+  appendChat({ role: "user", text: prompt, images: savedImages, targetFile });
   broadcast("prompt", { id: entry.id });
   console.log(`[inbox] + ${targetFile ? `[sửa ${targetFile}] ` : ""}${prompt.slice(0, 50)} ${savedImages.length ? `[+${savedImages.length} ảnh]` : ""}`);
   res.json({ ok: true, id: entry.id, images: savedImages });
+});
+
+// Claude POST câu trả lời / câu hỏi lại về đây -> hiện trên canvas
+app.post("/api/reply", (req, res) => {
+  const text = (req.body?.text ? String(req.body.text) : "").trim();
+  const kind = req.body?.kind === "question" ? "question" : "message"; // "question" cần người dùng trả lời
+  if (!text) return res.status(400).json({ error: "text rỗng" });
+  const entry = appendChat({ role: "assistant", text, kind });
+  console.log(`[reply] (${kind}) ${text.slice(0, 60)}`);
+  res.json({ ok: true, id: entry.id });
+});
+
+app.get("/api/chat", (req, res) => {
+  let items = [];
+  try {
+    items = fs.readFileSync(CHAT, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  } catch {}
+  res.json({ chat: items.slice(-100) });
 });
 
 app.get("/api/prompts", (req, res) => {

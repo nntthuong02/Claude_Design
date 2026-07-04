@@ -1,6 +1,7 @@
 node_modules/
 canvas/dist/
 prompts/inbox.jsonl
+prompts/chat.jsonl
 prompts/.seen
 prompts/attachments/
 .DS_Store

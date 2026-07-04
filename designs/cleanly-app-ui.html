@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cleanly — iOS UI Kit</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['-apple-system', 'SF Pro Display', 'Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            blue: { DEFAULT: '#4F7CFF', deep: '#2F55D4' },
+            mint: { DEFAULT: '#24C6A3', soft: '#DDF8F1' },
+            warm: '#FFC75A', orange: '#FF9F6E',
+            danger: { DEFAULT: '#FF5A6E', soft: '#FFE8EC' },
+            ink: { DEFAULT: '#151827', 2: '#6E7485', 3: '#A1A7B5' },
+            bg: '#F6F8FC', surf: '#FFFFFF', 'surf-soft': '#F0F3FA', line: '#E5E8F0',
+          },
+          borderRadius: { card: '24px', sm2: '18px', icon: '16px' },
+        },
+      },
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { background: #E9EDF5; }
+    .grad-primary { background: linear-gradient(135deg, #4F7CFF, #24C6A3); }
+    .grad-premium { background: linear-gradient(135deg, #6D5DFF, #B85CFF); }
+    .grad-success { background: linear-gradient(135deg, #24C6A3, #7BE495); }
+    .grad-bg { background: linear-gradient(180deg, #EEF3FF 0%, #F6F8FC 40%); }
+    /* iPhone frame */
+    .phone {
+      width: 393px; height: 852px; background: #F6F8FC; border-radius: 44px;
+      position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(30,50,90,0.18);
+      border: 10px solid #10131c; flex-shrink: 0;
+    }
+    .phone-scroll { position: absolute; inset: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: #10131c; border-radius: 0 0 18px 18px; z-index: 50; }
+    .statusbar { height: 52px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 6px; font-size: 13px; font-weight: 600; color: #151827; }
+    .tabbar { height: 76px; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-top: 1px solid #E5E8F0; display: flex; align-items: center; justify-content: space-around; padding-bottom: 14px; }
+    .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; color: #A1A7B5; }
+    .tab.active { color: #4F7CFF; }
+    .thumb { background: linear-gradient(135deg, #dbe4f5, #eef2fb); border-radius: 12px; position: relative; overflow: hidden; }
+    .thumb::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), transparent 60%); }
+    .kit { display: flex; flex-wrap: wrap; gap: 40px 32px; padding: 48px; align-items: flex-start; justify-content: center; }
+    .frame { display: flex; flex-direction: column; align-items: center; }
+    .cap { text-align: center; font: 600 13px Inter, sans-serif; color: #556; margin-top: 12px; }
+    .grp-title { width: 100%; font: 800 22px Inter, sans-serif; color: #151827; margin: 24px 8px 0; }
+    .grp-sub { width: 100%; font: 500 14px Inter, sans-serif; color: #6E7485; margin: 2px 8px 8px; }
+    /* content helpers */
+    .body { flex: 1; overflow: hidden; padding: 0 20px; }
+    .h-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+    .card { background: #fff; border-radius: 24px; box-shadow: 0 6px 20px rgba(30,50,90,0.06); }
+    .btn { height: 56px; border-radius: 18px; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { color: #fff; } /* pair with grad-primary */
+    .btn-white { background: #fff; color: #2F55D4; border: 1.5px solid #E5E8F0; }
+    .btn-ghost { background: transparent; color: #6E7485; }
+    .btn-danger { background: #FF5A6E; color: #fff; }
+    .chip { padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #F0F3FA; color: #6E7485; }
+    .chip.on { background: #4F7CFF; color: #fff; }
+    .ring { border-radius: 50%; background: conic-gradient(#4F7CFF var(--p,70%), #E5E8F0 0); display:flex; align-items:center; justify-content:center; }
+    .ring::before { content:''; position:absolute; width: calc(100% - 22px); height: calc(100% - 22px); background:#fff; border-radius:50%; }
+    .ic { width: 24px; height: 24px; display:inline-flex; align-items:center; justify-content:center; }
+    .ic svg { width: 100%; height: 100%; }
+    /* animation */
+    @keyframes rowIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+    @keyframes shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes chevronNudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+    .anim-row { animation: rowIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+    .set-row { transition: background 0.2s, transform 0.2s; cursor: pointer; }
+    .set-row:hover { background: #F0F3FA; }
+    .set-row:hover .chev { animation: chevronNudge 0.6s ease infinite; }
+    .set-row:active { transform: scale(0.985); }
+    .pro-card { position: relative; overflow: hidden; }
+    .pro-card::after { content:''; position:absolute; inset:0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.28) 50%, transparent 70%); background-size: 200% 100%; animation: shine 3.5s ease-in-out infinite; }
+    .set-ic { width: 36px; height: 36px; border-radius: 11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .set-ic svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body class="font-sans text-ink">
+
+  <header class="text-center pt-12 pb-2">
+    <div class="inline-flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl grad-primary flex items-center justify-center shadow-lg">
+        <span class="text-white text-2xl">✦</span>
+      </div>
+      <div class="text-left">
+        <h1 class="text-3xl font-extrabold text-ink">Cleanly</h1>
+        <p class="text-sm text-ink-2 font-medium">iOS UI Kit · Design System + 40 Screens</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="kit" id="kit">
+
+    <!-- ============ DESIGN SYSTEM ============ -->
+    <div class="grp-title">Design System</div>
+    <div class="grp-sub">Colors · Typography · Buttons · Cards · Navigation · Icons · Placeholders</div>
+
+    <!-- Colors + Type card -->
+    <div class="card" style="width: 520px; padding: 28px;">
+      <h3 class="text-xl font-extrabold mb-4">Colors</h3>
+      <div class="grid grid-cols-4 gap-3 mb-6">
+        <div><div class="h-14 rounded-2xl" style="background:#4F7CFF"></div><p class="text-xs font-semibold mt-1.5">Clean Blue</p><p class="text-[10px] text-ink-3">#4F7CFF</p></div>
+        <div><div class="h-14 rounded-2xl" style="background:#2F55D4"></div><p class="text-xs font-semibold mt-1.5">Deep Blue</p><p class="text-[10px] text-ink-3">#2F55D4</p></div>
+        <div><div class="h-14 rounded-2xl" style="background:#24C6A3"></div><p class="text-xs font-semibold mt-1.5">Mint</p><p class="text-[10px] text-ink-3">#24C6A3</p></div>
+        <div><div class="h-14 rounded-2xl border border-line" style="background:#DDF8F1"></div><p class="text-xs font-semibold mt-1.5">Soft Mint</p><p class="text-[10px] text-ink-3">#DDF8F1</p></div>
+        <div><div class="h-14 rounded-2xl" style="background:#FFC75A"></div><p class="text-xs font-semibold mt-1.5">Warm</p><p class="text-[10px] text-ink-3">#FFC75A</p></div>
+        <div><div class="h-14 rounded-2xl" style="background:#FF9F6E"></div><p class="text-xs font-semibold mt-1.5">Orange</p><p class="text-[10px] text-ink-3">#FF9F6E</p></div>
+        <div><div class="h-14 rounded-2xl" style="background:#FF5A6E"></div><p class="text-xs font-semibold mt-1.5">Danger</p><p class="text-[10px] text-ink-3">#FF5A6E</p></div>
+        <div><div class="h-14 rounded-2xl border border-line" style="background:#F0F3FA"></div><p class="text-xs font-semibold mt-1.5">Surf Soft</p><p class="text-[10px] text-ink-3">#F0F3FA</p></div>
+      </div>
+      <h3 class="text-xl font-extrabold mb-3">Gradients</h3>
+      <div class="grid grid-cols-3 gap-3">
+        <div><div class="h-14 rounded-2xl grad-primary"></div><p class="text-xs font-semibold mt-1.5">Primary</p></div>
+        <div><div class="h-14 rounded-2xl grad-premium"></div><p class="text-xs font-semibold mt-1.5">Premium</p></div>
+        <div><div class="h-14 rounded-2xl grad-success"></div><p class="text-xs font-semibold mt-1.5">Success</p></div>
+      </div>
+    </div>
+
+    <!-- Typography + Buttons -->
+    <div class="card" style="width: 400px; padding: 28px;">
+      <h3 class="text-xl font-extrabold mb-4">Typography</h3>
+      <div class="space-y-2.5 mb-6">
+        <p style="font-size:34px;font-weight:800;letter-spacing:-1px">Large Title</p>
+        <p style="font-size:28px;font-weight:800">Title 1</p>
+        <p style="font-size:22px;font-weight:700">Title 2</p>
+        <p style="font-size:20px;font-weight:600">Title 3</p>
+        <p style="font-size:16px;font-weight:400">Body — regular text</p>
+        <p style="font-size:13px;font-weight:500;color:#6E7485">Caption 13pt medium</p>
+      </div>
+      <h3 class="text-xl font-extrabold mb-3">Buttons</h3>
+      <div class="space-y-2.5">
+        <div class="btn grad-primary btn-primary">Smart Clean</div>
+        <div class="btn btn-white">Review Manually</div>
+        <div class="btn btn-danger">Delete Items</div>
+        <div class="btn grad-premium btn-primary">🔒 Unlock Pro</div>
+      </div>
+    </div>
+
+    <!-- Nav + Placeholders -->
+    <div class="card" style="width: 360px; padding: 28px;">
+      <h3 class="text-xl font-extrabold mb-3">Bottom Tab Bar</h3>
+      <div class="tabbar rounded-2xl mb-6" style="height:70px;border:1px solid #E5E8F0;border-top:1px solid #E5E8F0;padding-bottom:0">
+        <div class="tab active"><div class="ic">🏠</div>Home</div>
+        <div class="tab"><div class="ic">✨</div>Clean</div>
+        <div class="tab"><div class="ic">🃏</div>Swipe</div>
+        <div class="tab"><div class="ic">🧰</div>Tools</div>
+      </div>
+      <h3 class="text-xl font-extrabold mb-3">Icons</h3>
+      <div class="grid grid-cols-7 gap-3 text-xl mb-6 text-center">
+        <span>🏠</span><span>✨</span><span>🖼️</span><span>🎬</span><span>📸</span><span>👤</span><span>✉️</span>
+        <span>🃏</span><span>🔒</span><span>🗑️</span><span>✓</span><span>🔖</span><span>↩️</span><span>👑</span>
+      </div>
+      <h3 class="text-xl font-extrabold mb-3">Photo Placeholders</h3>
+      <div class="grid grid-cols-4 gap-2">
+        <div class="thumb aspect-square"></div>
+        <div class="thumb aspect-square"></div>
+        <div class="thumb aspect-square flex items-center justify-center text-lg">📸</div>
+        <div class="thumb aspect-square flex items-center justify-center text-lg">🎬</div>
+      </div>
+    </div>
+
+    <div class="grp-title">A · Onboarding Flow</div>
+    <div class="grp-sub">Splash → 3 intro → permission → scan → result</div>
+
+    <!-- 01 Splash -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg" style="background:linear-gradient(160deg,#4F7CFF,#24C6A3)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀛨 􀙇 􀋦</span></div>
+        <div class="flex-1 flex flex-col items-center justify-center text-white">
+          <div class="w-24 h-24 rounded-[28px] bg-white/20 backdrop-blur flex items-center justify-center text-5xl mb-6 shadow-2xl">✦</div>
+          <h1 class="text-4xl font-extrabold">Cleanly</h1>
+          <p class="text-white/80 font-medium mt-2">Smart iPhone Cleaner</p>
+        </div>
+        <div class="pb-14 flex justify-center"><div class="w-8 h-8 border-3 border-white/40 border-t-white rounded-full animate-spin" style="border-width:3px"></div></div>
+      </div></div><p class="cap">01 · Splash</p></div>
+
+    <!-- 02 Onboarding 1 -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex-1 flex items-center justify-center">
+            <div class="card w-full p-6" style="box-shadow:0 20px 50px rgba(79,124,255,0.18)">
+              <div class="flex items-center justify-between mb-3"><span class="font-bold text-lg">iPhone Storage</span><span class="text-danger font-bold">78% full</span></div>
+              <div class="h-4 rounded-full bg-surf-soft overflow-hidden"><div class="h-full w-[78%]" style="background:linear-gradient(90deg,#FFC75A,#FF5A6E)"></div></div>
+              <div class="flex justify-between text-xs text-ink-2 mt-2"><span>200 GB used</span><span>56 GB free</span></div>
+              <div class="mt-4 p-3 rounded-2xl bg-danger-soft flex items-center gap-2"><span>⚠️</span><span class="text-sm font-semibold text-danger">Storage almost full</span></div>
+            </div>
+          </div>
+          <div class="pb-2">
+            <h1 class="h-title mb-2">Free up iPhone storage</h1>
+            <p class="text-ink-2 text-base leading-relaxed">Find photos, videos, and files that take up too much space.</p>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-4">
+          <div class="flex justify-center gap-1.5 mb-5"><span class="w-6 h-1.5 rounded-full bg-blue"></span><span class="w-1.5 h-1.5 rounded-full bg-line"></span><span class="w-1.5 h-1.5 rounded-full bg-line"></span></div>
+          <div class="btn grad-primary btn-primary">Continue</div>
+        </div>
+      </div></div><p class="cap">02 · Storage Pain</p></div>
+
+    <!-- 03 Onboarding 2 -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex-1 flex items-center justify-center relative">
+            <div class="card p-4 absolute rotate-[-8deg] translate-x-[-60px] translate-y-[-40px] w-40"><div class="text-2xl mb-1">🖼️</div><p class="font-bold text-sm">Duplicates</p><p class="text-xs text-ink-2">1.2 GB</p></div>
+            <div class="card p-4 absolute rotate-[6deg] translate-x-[60px] translate-y-[10px] w-40" style="box-shadow:0 16px 40px rgba(36,198,163,0.2)"><div class="text-2xl mb-1">🎬</div><p class="font-bold text-sm">Large Videos</p><p class="text-xs text-ink-2">3.4 GB</p></div>
+            <div class="card p-4 absolute rotate-[-3deg] translate-y-[70px] w-40"><div class="text-2xl mb-1">📸</div><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">340 MB</p></div>
+          </div>
+          <div class="pb-2">
+            <h1 class="h-title mb-2">Clean smarter, not harder</h1>
+            <p class="text-ink-2 text-base leading-relaxed">Detect duplicates, similar photos, screenshots, and large videos.</p>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-4">
+          <div class="flex justify-center gap-1.5 mb-5"><span class="w-1.5 h-1.5 rounded-full bg-line"></span><span class="w-6 h-1.5 rounded-full bg-blue"></span><span class="w-1.5 h-1.5 rounded-full bg-line"></span></div>
+          <div class="btn grad-primary btn-primary">Continue</div>
+        </div>
+      </div></div><p class="cap">03 · Smart Cleaning</p></div>
+
+    <!-- 04 Onboarding 3 -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex-1 flex items-center justify-center">
+            <div class="card w-full p-5">
+              <p class="font-bold mb-3">Review before deleting</p>
+              <div class="space-y-2.5">
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-mint-soft"><div class="thumb w-10 h-10"></div><span class="flex-1 text-sm font-medium">IMG_2043.HEIC</span><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surf-soft"><div class="thumb w-10 h-10"></div><span class="flex-1 text-sm font-medium">IMG_2044.HEIC</span><span class="w-6 h-6 rounded-full border-2 border-line"></span></div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-mint-soft"><div class="thumb w-10 h-10"></div><span class="flex-1 text-sm font-medium">Screenshot.PNG</span><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="pb-2">
+            <h1 class="h-title mb-2">Review before deleting</h1>
+            <p class="text-ink-2 text-base leading-relaxed">You stay in control. Nothing is deleted without your approval.</p>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-4">
+          <div class="flex justify-center gap-1.5 mb-5"><span class="w-1.5 h-1.5 rounded-full bg-line"></span><span class="w-1.5 h-1.5 rounded-full bg-line"></span><span class="w-6 h-1.5 rounded-full bg-blue"></span></div>
+          <div class="btn grad-primary btn-primary">Get Started</div>
+        </div>
+      </div></div><p class="cap">04 · Safe Review</p></div>
+
+    <!-- 05 Photo Permission -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 rounded-[24px] grad-primary flex items-center justify-center text-4xl mb-6 shadow-xl">🖼️</div>
+          <h1 class="text-[26px] font-extrabold mb-2">Allow photo access</h1>
+          <p class="text-ink-2 leading-relaxed mb-4">Cleanly scans your library to find items you may want to remove.</p>
+          <div class="p-3 rounded-2xl bg-mint-soft flex items-center gap-2 mb-2"><span>🔒</span><span class="text-sm font-semibold text-mint" style="color:#159">Your photos stay private on device</span></div>
+        </div>
+        <div class="px-5 pb-10 space-y-3">
+          <div class="btn grad-primary btn-primary">Allow Access</div>
+          <div class="btn btn-ghost">Maybe Later</div>
+        </div>
+      </div></div><p class="cap">05 · Photo Permission</p></div>
+
+    <!-- 06 First Scan Loading -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex flex-col items-center pt-8 mb-8">
+            <div class="ring relative w-40 h-40" style="--p:64%"><span class="relative font-extrabold text-3xl">64%</span></div>
+            <h1 class="text-2xl font-extrabold mt-6">Scanning your library</h1>
+            <p class="text-ink-2 text-center mt-1">Looking for duplicates, screenshots, and large videos...</p>
+          </div>
+          <div class="space-y-2.5">
+            <div class="card p-3.5 flex items-center gap-3"><span class="w-7 h-7 rounded-full grad-success flex items-center justify-center text-white text-sm">✓</span><span class="flex-1 font-semibold text-sm">Duplicate Photos</span><span class="text-xs text-ink-3">Done</span></div>
+            <div class="card p-3.5 flex items-center gap-3"><span class="w-7 h-7 rounded-full grad-success flex items-center justify-center text-white text-sm">✓</span><span class="flex-1 font-semibold text-sm">Similar Photos</span><span class="text-xs text-ink-3">Done</span></div>
+            <div class="card p-3.5 flex items-center gap-3"><span class="w-7 h-7 rounded-full border-2 border-blue border-t-transparent animate-spin"></span><span class="flex-1 font-semibold text-sm">Screenshots</span><span class="text-xs text-blue font-semibold">Scanning</span></div>
+            <div class="card p-3.5 flex items-center gap-3 opacity-50"><span class="w-7 h-7 rounded-full bg-surf-soft"></span><span class="flex-1 font-semibold text-sm">Large Videos</span><span class="text-xs text-ink-3">Waiting</span></div>
+          </div>
+        </div>
+        <div class="h-10"></div>
+      </div></div><p class="cap">06 · First Scan Loading</p></div>
+
+    <!-- 07 First Scan Result -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="text-center pt-6 mb-5">
+            <p class="text-ink-2 font-medium">You can free up</p>
+            <h1 class="text-[44px] font-extrabold leading-tight" style="background:linear-gradient(135deg,#4F7CFF,#24C6A3);-webkit-background-clip:text;background-clip:text;color:transparent">5.8 GB</h1>
+          </div>
+          <div class="space-y-2.5 flex-1">
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-blue/10 flex items-center justify-center text-xl">🖼️</div><div class="flex-1"><p class="font-bold text-sm">Duplicate Photos</p><p class="text-xs text-ink-2">324 items</p></div><span class="font-extrabold text-blue">1.2 GB</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-mint/10 flex items-center justify-center text-xl">📑</div><div class="flex-1"><p class="font-bold text-sm">Similar Photos</p><p class="text-xs text-ink-2">210 items</p></div><span class="font-extrabold" style="color:#24C6A3">850 MB</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon flex items-center justify-center text-xl" style="background:#FFF3DE">📸</div><div class="flex-1"><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">96 items</p></div><span class="font-extrabold" style="color:#FF9F6E">340 MB</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-danger-soft flex items-center justify-center text-xl">🎬</div><div class="flex-1"><p class="font-bold text-sm">Large Videos</p><p class="text-xs text-ink-2">12 items</p></div><span class="font-extrabold text-danger">3.4 GB</span></div>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-3 space-y-3">
+          <div class="btn grad-primary btn-primary">Start Smart Clean</div>
+          <div class="btn btn-ghost">Review Manually</div>
+        </div>
+      </div></div><p class="cap">07 · First Scan Result</p></div>
+
+    <div class="grp-title">B · Home Tab</div>
+    <div class="grp-sub">Dashboard · Empty state · Limited access</div>
+
+    <!-- 08 Home Dashboard -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col overflow-y-auto">
+          <div class="flex items-center justify-between pt-2 mb-4">
+            <div><p class="text-ink-2 text-sm">Good morning</p><p class="text-2xl font-extrabold">Storage</p></div>
+            <div class="flex items-center gap-2"><span class="chip on text-xs" style="background:linear-gradient(135deg,#6D5DFF,#B85CFF)">👑 PRO</span><div class="w-10 h-10 rounded-full bg-surf flex items-center justify-center text-lg card">⚙️</div></div>
+          </div>
+          <div class="rounded-card p-5 grad-primary text-white mb-4" style="box-shadow:0 16px 40px rgba(79,124,255,0.3)">
+            <div class="flex justify-between items-start mb-3"><div><p class="text-white/80 text-sm">You can free up</p><p class="text-4xl font-extrabold">5.8 GB</p></div><div class="ring relative w-16 h-16" style="--p:78%;background:conic-gradient(#fff var(--p),rgba(255,255,255,0.3) 0)"><span class="relative text-xs font-bold">78%</span></div></div>
+            <div class="btn bg-white text-blue font-bold" style="height:48px;color:#2F55D4">✨ Smart Clean</div>
+          </div>
+          <p class="font-bold mb-2.5">Quick Clean</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="card p-3.5"><div class="text-xl mb-1">🖼️</div><p class="font-bold text-sm">Duplicates</p><p class="text-xs text-ink-2">1.2 GB</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">📑</div><p class="font-bold text-sm">Similar</p><p class="text-xs text-ink-2">850 MB</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">📸</div><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">340 MB</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">🎬</div><p class="font-bold text-sm">Large Videos</p><p class="text-xs text-ink-2">3.4 GB</p></div>
+          </div>
+          <div class="card p-4 flex items-center gap-3 mb-4" style="background:linear-gradient(135deg,#DDF8F1,#fff)">
+            <div class="thumb w-12 h-12"></div>
+            <div class="flex-1"><p class="font-bold text-sm">Continue: March Photos</p><div class="h-1.5 rounded-full bg-white/70 mt-1.5 overflow-hidden"><div class="h-full w-[30%] grad-success"></div></div><p class="text-xs text-ink-2 mt-1">126 / 420 reviewed</p></div>
+            <span class="text-blue font-bold text-lg">›</span>
+          </div>
+        </div>
+        <div class="tabbar"><div class="tab active"><div class="ic">🏠</div>Home</div><div class="tab"><div class="ic">✨</div>Clean</div><div class="tab"><div class="ic">🃏</div>Swipe</div><div class="tab"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">08 · Home Dashboard</p></div>
+
+    <!-- 09 Home Empty -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center justify-between pt-2 mb-4"><p class="text-2xl font-extrabold">Storage</p><div class="w-10 h-10 rounded-full bg-surf flex items-center justify-center card">⚙️</div></div>
+          <div class="flex-1 flex flex-col items-center justify-center text-center">
+            <div class="w-24 h-24 rounded-full grad-success flex items-center justify-center text-5xl mb-5 shadow-xl">✓</div>
+            <h1 class="text-2xl font-extrabold mb-1">Your storage looks clean</h1>
+            <p class="text-ink-2">0 clutter found</p>
+            <div class="btn btn-white mt-6 px-8" style="width:auto">🔄 Scan Again</div>
+          </div>
+          <div class="card p-4 flex items-center gap-3 mb-4" style="background:linear-gradient(135deg,#EEF0FF,#fff)"><div class="text-2xl">🃏</div><div class="flex-1"><p class="font-bold text-sm">Try Swipe Clean</p><p class="text-xs text-ink-2">Clean photos in fun quick sessions</p></div><span class="text-blue font-bold">›</span></div>
+        </div>
+        <div class="tabbar"><div class="tab active"><div class="ic">🏠</div>Home</div><div class="tab"><div class="ic">✨</div>Clean</div><div class="tab"><div class="ic">🃏</div>Swipe</div><div class="tab"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">09 · Home Clean State</p></div>
+
+    <!-- 10 Home Limited Access -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center justify-between pt-2 mb-4"><p class="text-2xl font-extrabold">Storage</p><div class="w-10 h-10 rounded-full bg-surf flex items-center justify-center card">⚙️</div></div>
+          <div class="card p-4 mb-4" style="background:#FFF3DE;border:1px solid #FFC75A">
+            <div class="flex items-center gap-2 mb-1.5"><span class="text-xl">⚠️</span><p class="font-bold">Limited photo access</p></div>
+            <p class="text-sm text-ink-2 mb-3">Some photos may be hidden from scan. Allow full access for best results.</p>
+            <div class="btn" style="height:44px;background:#FFC75A;color:#5a4000">Manage Access</div>
+          </div>
+          <div class="rounded-card p-5 grad-primary text-white mb-4"><p class="text-white/80 text-sm">You can free up</p><p class="text-4xl font-extrabold mb-3">2.1 GB</p><div class="btn bg-white" style="height:48px;color:#2F55D4">✨ Smart Clean</div></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="card p-3.5"><div class="text-xl mb-1">🖼️</div><p class="font-bold text-sm">Duplicates</p><p class="text-xs text-ink-2">Partial</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">📸</div><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">340 MB</p></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="tab active"><div class="ic">🏠</div>Home</div><div class="tab"><div class="ic">✨</div>Clean</div><div class="tab"><div class="ic">🃏</div>Swipe</div><div class="tab"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">10 · Limited Access</p></div>
+
+    <div class="grp-title">C · Smart Clean Flow</div>
+    <div class="grp-sub">Scanning → result → review → confirm → success</div>
+
+    <!-- 11 Smart Clean Scanning -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-6"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Smart Clean</h1></div>
+          <div class="flex flex-col items-center mb-8"><div class="ring relative w-32 h-32" style="--p:45%"><span class="relative font-extrabold text-2xl">45%</span></div><p class="text-ink-2 mt-4">Scanning 2 of 4 categories...</p></div>
+          <div class="space-y-2.5">
+            <div class="card p-3.5 flex items-center gap-3"><span class="w-7 h-7 rounded-full grad-success flex items-center justify-center text-white text-sm">✓</span><span class="flex-1 font-semibold text-sm">Duplicate Photos</span><span class="text-xs text-ink-3">324 found</span></div>
+            <div class="card p-3.5 flex items-center gap-3"><span class="w-7 h-7 rounded-full border-2 border-blue border-t-transparent animate-spin"></span><span class="flex-1 font-semibold text-sm">Similar Photos</span><span class="text-xs text-blue font-semibold">Scanning</span></div>
+            <div class="card p-3.5 flex items-center gap-3 opacity-50"><span class="w-7 h-7 rounded-full bg-surf-soft"></span><span class="flex-1 font-semibold text-sm">Screenshots</span></div>
+            <div class="card p-3.5 flex items-center gap-3 opacity-50"><span class="w-7 h-7 rounded-full bg-surf-soft"></span><span class="flex-1 font-semibold text-sm">Large Videos</span></div>
+          </div>
+        </div><div class="h-10"></div>
+      </div></div><p class="cap">11 · Smart Clean Scanning</p></div>
+
+    <!-- 12 Smart Clean Result -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Ready to clean</h1></div>
+          <div class="text-center mb-4"><p class="text-ink-2 text-sm">Total found</p><p class="text-[40px] font-extrabold" style="background:linear-gradient(135deg,#4F7CFF,#24C6A3);-webkit-background-clip:text;background-clip:text;color:transparent">5.8 GB</p></div>
+          <div class="space-y-2.5 flex-1">
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-blue/10 flex items-center justify-center text-xl">🖼️</div><div class="flex-1"><p class="font-bold text-sm">Duplicate Photos</p><p class="text-xs text-ink-2">324 items · 1.2 GB</p></div><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-mint/10 flex items-center justify-center text-xl">📑</div><div class="flex-1"><p class="font-bold text-sm">Similar Photos</p><p class="text-xs text-ink-2">210 items · 850 MB</p></div><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon flex items-center justify-center text-xl" style="background:#FFF3DE">📸</div><div class="flex-1"><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">96 items · 340 MB</p></div><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-11 h-11 rounded-icon bg-danger-soft flex items-center justify-center text-xl">🎬</div><div class="flex-1"><p class="font-bold text-sm">Large Videos</p><p class="text-xs text-ink-2">12 items · 3.4 GB</p></div><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-3 space-y-3"><div class="btn grad-primary btn-primary">Review Selected</div><div class="btn btn-ghost">Edit Selection</div></div>
+      </div></div><p class="cap">12 · Smart Clean Result</p></div>
+
+    <!-- 13 Review Selected -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-lg font-extrabold">Review before deleting</h1></div>
+          <div class="flex gap-2 mb-3 overflow-x-auto"><span class="chip on">All</span><span class="chip">Photos</span><span class="chip">Screenshots</span><span class="chip">Videos</span></div>
+          <div class="grid grid-cols-3 gap-2 flex-1 overflow-y-auto content-start">
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full border-2 border-white z-10"></span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square flex items-center justify-center">🎬<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full border-2 border-white z-10"></span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="flex justify-between mb-2.5"><span class="text-sm text-ink-2">248 items selected</span><span class="text-sm font-bold text-blue">Free up 5.8 GB</span></div><div class="btn btn-danger">Delete Selected</div></div>
+      </div></div><p class="cap">13 · Review Selected</p></div>
+
+    <!-- 14 Delete Confirmation -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:rgba(21,24,39,0.4)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="flex-1"></div>
+        <div class="bg-white rounded-t-[28px] p-6 pb-10">
+          <div class="w-12 h-1.5 rounded-full bg-line mx-auto mb-5"></div>
+          <div class="w-16 h-16 rounded-full bg-danger-soft flex items-center justify-center text-3xl mx-auto mb-4">🗑️</div>
+          <h2 class="text-xl font-extrabold text-center mb-2">Delete 248 items?</h2>
+          <p class="text-ink-2 text-center text-sm mb-6 leading-relaxed">You can recover them from Recently Deleted for 30 days.</p>
+          <div class="space-y-3"><div class="btn btn-danger">Delete Items</div><div class="btn btn-white">Cancel</div></div>
+        </div>
+      </div></div><p class="cap">14 · Delete Confirmation</p></div>
+
+    <!-- 15 Cleaning Success -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(180deg,#24C6A3,#4F7CFF)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-white text-center">
+          <div class="text-4xl mb-2">🎉</div>
+          <div class="w-28 h-28 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-6xl mb-5">✓</div>
+          <p class="text-white/80">Freed up</p>
+          <h1 class="text-5xl font-extrabold mb-6">5.8 GB</h1>
+          <div class="flex gap-3">
+            <div class="bg-white/15 backdrop-blur rounded-2xl px-5 py-3"><p class="text-2xl font-extrabold">248</p><p class="text-xs text-white/80">items cleaned</p></div>
+            <div class="bg-white/15 backdrop-blur rounded-2xl px-5 py-3"><p class="text-2xl font-extrabold">4</p><p class="text-xs text-white/80">categories</p></div>
+          </div>
+        </div>
+        <div class="px-5 pb-10 space-y-3">
+          <p class="text-center text-white/70 text-xs mb-1">Empty Recently Deleted to reclaim storage permanently.</p>
+          <div class="btn bg-white" style="color:#2F55D4">Continue Cleaning</div>
+          <div class="btn btn-ghost text-white">Back to Home</div>
+        </div>
+      </div></div><p class="cap">15 · Cleaning Success</p></div>
+
+    <div class="grp-title">D · Clean Tab</div>
+    <div class="grp-sub">Categories · Duplicates · Similar · Screenshots · Large videos</div>
+
+    <!-- 16 Clean Category Home -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col overflow-y-auto">
+          <h1 class="text-3xl font-extrabold pt-2 mb-4">Clean</h1>
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2">Photos</p>
+          <div class="space-y-2.5 mb-4">
+            <div class="card p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-icon bg-blue/10 flex items-center justify-center">🖼️</div><div class="flex-1"><p class="font-bold text-sm">Duplicate Photos</p><p class="text-xs text-ink-2">324 items</p></div><span class="font-bold text-blue text-sm">1.2 GB ›</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-icon bg-mint/10 flex items-center justify-center">📑</div><div class="flex-1"><p class="font-bold text-sm">Similar Photos</p><p class="text-xs text-ink-2">210 items</p></div><span class="font-bold text-sm" style="color:#24C6A3">850 MB ›</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-icon flex items-center justify-center" style="background:#FFF3DE">📸</div><div class="flex-1"><p class="font-bold text-sm">Screenshots</p><p class="text-xs text-ink-2">96 items</p></div><span class="font-bold text-sm" style="color:#FF9F6E">340 MB ›</span></div>
+          </div>
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2">Videos</p>
+          <div class="space-y-2.5 mb-4">
+            <div class="card p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-icon bg-danger-soft flex items-center justify-center">🎬</div><div class="flex-1"><p class="font-bold text-sm">Large Videos</p><p class="text-xs text-ink-2">12 items</p></div><span class="font-bold text-danger text-sm">3.4 GB ›</span></div>
+            <div class="card p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-icon grad-premium flex items-center justify-center text-white">🎞️</div><div class="flex-1"><p class="font-bold text-sm">Video Compressor</p><p class="text-xs text-ink-2">Reduce size</p></div><span class="text-xs">👑</span></div>
+          </div>
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2">More</p>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="card p-4"><div class="text-xl mb-1">👤</div><p class="font-bold text-sm">Contacts</p><p class="text-xs text-ink-2">18 duplicates</p></div>
+            <div class="card p-4"><div class="text-xl mb-1">✉️</div><p class="font-bold text-sm">Email</p><p class="text-xs text-ink-2">Cleanup</p></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="tab"><div class="ic">🏠</div>Home</div><div class="tab active"><div class="ic">✨</div>Clean</div><div class="tab"><div class="ic">🃏</div>Swipe</div><div class="tab"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">16 · Clean Category Home</p></div>
+
+    <!-- 17 Duplicate Photos Group List -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-1"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Duplicate Photos</h1></div>
+          <p class="text-sm text-ink-2 mb-3 ml-9">82 groups found</p>
+          <div class="space-y-3 flex-1 overflow-y-auto">
+            <div class="card p-3"><div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-mint" style="color:#159">4 items · save 12 MB</span><span class="chip on text-[11px] py-1">3 selected</span></div><div class="grid grid-cols-4 gap-1.5"><div class="thumb aspect-square"><span class="absolute top-0.5 left-0.5 text-[9px] bg-mint text-white px-1 rounded z-10" style="background:#24C6A3">BEST</span></div><div class="thumb aspect-square opacity-70"></div><div class="thumb aspect-square opacity-70"></div><div class="thumb aspect-square opacity-70"></div></div></div>
+            <div class="card p-3"><div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-mint" style="color:#159">3 items · save 8 MB</span><span class="chip on text-[11px] py-1">2 selected</span></div><div class="grid grid-cols-4 gap-1.5"><div class="thumb aspect-square"><span class="absolute top-0.5 left-0.5 text-[9px] text-white px-1 rounded z-10" style="background:#24C6A3">BEST</span></div><div class="thumb aspect-square opacity-70"></div><div class="thumb aspect-square opacity-70"></div><div class="aspect-square"></div></div></div>
+            <div class="card p-3"><div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-mint" style="color:#159">5 items · save 20 MB</span><span class="chip on text-[11px] py-1">4 selected</span></div><div class="grid grid-cols-4 gap-1.5"><div class="thumb aspect-square"><span class="absolute top-0.5 left-0.5 text-[9px] text-white px-1 rounded z-10" style="background:#24C6A3">BEST</span></div><div class="thumb aspect-square opacity-70"></div><div class="thumb aspect-square opacity-70"></div><div class="thumb aspect-square opacity-70"></div></div></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="btn grad-primary btn-primary">Review Selected · 1.1 GB</div></div>
+      </div></div><p class="cap">17 · Duplicate Group List</p></div>
+
+    <!-- 18 Duplicate Group Detail -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Duplicate Group</h1></div>
+          <div class="mb-3"><div class="thumb w-full aspect-[4/3] rounded-2xl flex items-center justify-center"><span class="absolute top-2 left-2 text-xs text-white px-2 py-1 rounded-full z-10 font-bold" style="background:#24C6A3">✓ BEST — Keep</span></div></div>
+          <div class="grid grid-cols-3 gap-2 flex-1 content-start">
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger flex items-center justify-center text-white text-[10px] z-10">🗑</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger flex items-center justify-center text-white text-[10px] z-10">🗑</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 w-5 h-5 rounded-full border-2 border-white z-10"></span></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line flex gap-2"><div class="btn btn-white flex-1" style="height:50px">Keep All</div><div class="btn btn-danger flex-1" style="height:50px">Delete 2 Selected</div></div>
+      </div></div><p class="cap">18 · Group Detail</p></div>
+
+    <!-- 19 Similar Photos -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Similar Photos</h1></div>
+          <div class="space-y-3 flex-1 overflow-y-auto">
+            <div class="card p-3"><div class="flex justify-between mb-2"><p class="font-bold text-sm">Selfies · 24 photos</p><span class="text-xs font-bold" style="color:#24C6A3">save 180 MB</span></div><div class="grid grid-cols-5 gap-1.5"><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square flex items-center justify-center text-xs font-bold text-ink-2">+19</div></div></div>
+            <div class="card p-3"><div class="flex justify-between mb-2"><p class="font-bold text-sm">Burst shots · 40 photos</p><span class="text-xs font-bold" style="color:#24C6A3">save 320 MB</span></div><div class="grid grid-cols-5 gap-1.5"><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square flex items-center justify-center text-xs font-bold text-ink-2">+35</div></div></div>
+            <div class="card p-3"><div class="flex justify-between mb-2"><p class="font-bold text-sm">Same scene · 16 photos</p><span class="text-xs font-bold" style="color:#24C6A3">save 210 MB</span></div><div class="grid grid-cols-5 gap-1.5"><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square flex items-center justify-center text-xs font-bold text-ink-2">+11</div></div></div>
+            <div class="card p-3"><div class="flex justify-between mb-2"><p class="font-bold text-sm">Blurry · 8 photos</p><span class="text-xs font-bold" style="color:#24C6A3">save 60 MB</span></div><div class="grid grid-cols-5 gap-1.5"><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div><div class="thumb aspect-square"></div></div></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="btn grad-primary btn-primary">Auto-Select & Review</div></div>
+      </div></div><p class="cap">19 · Similar Photos</p></div>
+
+    <!-- 20 Screenshots Cleaner -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Screenshots</h1></div>
+          <div class="flex gap-2 mb-3"><span class="chip on">All</span><span class="chip">This Month</span><span class="chip">Old</span><span class="chip">Large</span></div>
+          <div class="grid grid-cols-3 gap-2 flex-1 overflow-y-auto content-start">
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full border-2 border-white z-10"></span></div>
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full grad-primary flex items-center justify-center text-white text-[10px] z-10">✓</span></div>
+            <div class="thumb aspect-[9/16] flex items-center justify-center">📸<span class="absolute top-1 right-1 w-5 h-5 rounded-full border-2 border-white z-10"></span></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="flex justify-between mb-2.5"><span class="text-sm text-ink-2">64 selected</span><span class="text-sm font-bold text-blue">240 MB</span></div><div class="btn btn-danger">Delete Selected</div></div>
+      </div></div><p class="cap">20 · Screenshots Cleaner</p></div>
+
+    <!-- 21 Large Videos -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Large Videos</h1></div>
+          <div class="flex gap-2 mb-3"><span class="chip on">Largest</span><span class="chip">Newest</span><span class="chip">Oldest</span></div>
+          <div class="space-y-2.5 flex-1 overflow-y-auto">
+            <div class="card p-2.5 flex items-center gap-3"><div class="thumb w-16 h-16 flex items-center justify-center">🎬<span class="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded z-10">2:14</span></div><div class="flex-1"><p class="font-bold text-sm">IMG_4821.MOV</p><p class="text-xs text-ink-2">Mar 12, 2026</p></div><div class="text-right"><p class="font-extrabold text-danger">680 MB</p><span class="w-5 h-5 rounded-full grad-primary inline-flex items-center justify-center text-white text-[10px]">✓</span></div></div>
+            <div class="card p-2.5 flex items-center gap-3"><div class="thumb w-16 h-16 flex items-center justify-center">🎬<span class="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded z-10">1:48</span></div><div class="flex-1"><p class="font-bold text-sm">IMG_4790.MOV</p><p class="text-xs text-ink-2">Mar 08, 2026</p></div><div class="text-right"><p class="font-extrabold text-danger">540 MB</p><span class="w-5 h-5 rounded-full grad-primary inline-flex items-center justify-center text-white text-[10px]">✓</span></div></div>
+            <div class="card p-2.5 flex items-center gap-3"><div class="thumb w-16 h-16 flex items-center justify-center">🎬<span class="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded z-10">3:02</span></div><div class="flex-1"><p class="font-bold text-sm">IMG_4702.MOV</p><p class="text-xs text-ink-2">Feb 28, 2026</p></div><div class="text-right"><p class="font-extrabold text-ink">910 MB</p><span class="w-5 h-5 rounded-full border-2 border-line inline-flex"></span></div></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="flex justify-between mb-2.5"><span class="text-sm text-ink-2">2 selected</span><span class="text-sm font-bold text-blue">1.2 GB</span></div><div class="btn btn-danger">Delete Selected</div></div>
+      </div></div><p class="cap">21 · Large Videos</p></div>
+
+    <div class="grp-title">E · Swipe Tab</div>
+    <div class="grp-sub">Home · Month select · Deck · Delete/Keep states · Complete · Bookmarked</div>
+
+    <!-- 22 Swipe Home -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col overflow-y-auto">
+          <h1 class="text-3xl font-extrabold pt-2 mb-4">Swipe Clean</h1>
+          <div class="rounded-card p-5 mb-4 text-white" style="background:linear-gradient(135deg,#6D5DFF,#B85CFF);box-shadow:0 16px 40px rgba(109,93,255,0.3)">
+            <div class="flex items-center justify-between"><div><p class="text-white/80 text-sm">Clean photos in quick sessions</p><p class="text-2xl font-extrabold mt-1">Start Swiping</p></div><div class="ring relative w-16 h-16" style="--p:40%;background:conic-gradient(#fff var(--p),rgba(255,255,255,0.3) 0)"><span class="relative text-xs font-bold">40%</span></div></div>
+            <div class="btn bg-white mt-3" style="height:46px;color:#6D5DFF">🃏 Start Swiping</div>
+          </div>
+          <p class="font-bold mb-2.5">Cleaning modes</p>
+          <div class="grid grid-cols-2 gap-2.5 mb-4">
+            <div class="card p-3.5"><div class="text-xl mb-1">📅</div><p class="font-bold text-sm">By Month</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">📚</div><p class="font-bold text-sm">By Album</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">🗓️</div><p class="font-bold text-sm">On This Day</p></div>
+            <div class="card p-3.5"><div class="text-xl mb-1">🎲</div><p class="font-bold text-sm">Random 20</p></div>
+          </div>
+          <div class="card p-4 flex items-center gap-3" style="background:linear-gradient(135deg,#FFF3DE,#fff)"><div class="text-2xl">🔥</div><div class="flex-1"><p class="font-bold text-sm">5-day streak</p><p class="text-xs text-ink-2">1,240 photos reviewed</p></div></div>
+        </div>
+        <div class="tabbar"><div class="tab"><div class="ic">🏠</div>Home</div><div class="tab"><div class="ic">✨</div>Clean</div><div class="tab active"><div class="ic">🃏</div>Swipe</div><div class="tab"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">22 · Swipe Home</p></div>
+
+    <!-- 23 Month Selection -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Choose a month</h1></div>
+          <div class="space-y-3 flex-1 overflow-y-auto">
+            <div class="card p-4"><div class="flex justify-between items-center mb-2"><p class="font-bold">March 2026</p><span class="text-xs text-ink-2">420 photos · 2.1 GB</span></div><div class="h-2 rounded-full bg-surf-soft overflow-hidden"><div class="h-full w-[30%] grad-primary"></div></div><p class="text-xs text-ink-2 mt-1.5">126 / 420 reviewed</p></div>
+            <div class="card p-4"><div class="flex justify-between items-center mb-2"><p class="font-bold">February 2026</p><span class="text-xs font-bold flex items-center gap-1" style="color:#24C6A3">✓ Done</span></div><div class="h-2 rounded-full bg-surf-soft overflow-hidden"><div class="h-full w-full grad-success"></div></div><p class="text-xs text-ink-2 mt-1.5">310 / 310 reviewed</p></div>
+            <div class="card p-4"><div class="flex justify-between items-center mb-2"><p class="font-bold">January 2026</p><span class="text-xs text-ink-2">280 photos · 1.4 GB</span></div><div class="h-2 rounded-full bg-surf-soft overflow-hidden"><div class="h-full w-0 grad-primary"></div></div><p class="text-xs text-ink-2 mt-1.5">Not started</p></div>
+          </div>
+        </div><div class="h-8"></div>
+      </div></div><p class="cap">23 · Month Selection</p></div>
+
+    <!-- 24 Swipe Deck -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(180deg,#1a1e2e,#2a2f45)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="flex items-center justify-between px-5 py-2 text-white"><span class="text-xl">✕</span><div class="text-center"><p class="font-bold text-sm">March 2026</p><p class="text-xs text-white/60">126 / 420</p></div><span class="text-xl opacity-0">✕</span></div>
+        <div class="h-1 mx-5 rounded-full bg-white/20 overflow-hidden"><div class="h-full w-[30%] grad-primary"></div></div>
+        <div class="flex-1 flex items-center justify-center px-6 relative">
+          <div class="w-full aspect-[3/4] rounded-3xl thumb flex flex-col items-center justify-center" style="box-shadow:0 20px 50px rgba(0,0,0,0.4)"><span class="text-5xl relative">🏞️</span></div>
+        </div>
+        <div class="text-center text-white/80 text-sm mb-3"><p class="font-semibold">Mar 14, 2026 · 4.2 MB</p></div>
+        <div class="flex items-center justify-center gap-4 pb-10">
+          <div class="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center text-white text-lg">↩️</div>
+          <div class="w-16 h-16 rounded-full bg-danger flex items-center justify-center text-white text-2xl shadow-lg">🗑️</div>
+          <div class="w-16 h-16 rounded-full grad-success flex items-center justify-center text-white text-2xl shadow-lg">✓</div>
+          <div class="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center text-white text-lg">🔖</div>
+        </div>
+      </div></div><p class="cap">24 · Swipe Deck</p></div>
+
+    <!-- 25 Swipe Delete State -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(120deg,#FF5A6E,#2a2f45 60%)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="flex items-center justify-between px-5 py-2 text-white"><span class="text-xl">✕</span><div class="text-center"><p class="font-bold text-sm">March 2026</p><p class="text-xs text-white/60">127 / 420</p></div><span class="opacity-0">✕</span></div>
+        <div class="flex-1 flex items-center justify-center px-6">
+          <div class="w-full aspect-[3/4] rounded-3xl thumb flex items-center justify-center rotate-[-12deg]" style="box-shadow:0 20px 50px rgba(255,90,110,0.5)">
+            <span class="text-5xl relative">🏞️</span>
+            <span class="absolute top-6 right-6 border-4 border-danger text-danger font-extrabold text-2xl px-4 py-1 rounded-xl rotate-[12deg] bg-white/90 z-10">DELETE</span>
+          </div>
+        </div>
+        <div class="text-center text-white pb-16"><p class="text-4xl mb-1">🗑️</p><p class="font-bold text-lg">Delete</p><p class="text-white/70 text-sm">Swipe left to delete</p></div>
+      </div></div><p class="cap">25 · Swipe Delete State</p></div>
+
+    <!-- 26 Swipe Keep State -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(240deg,#24C6A3,#2a2f45 60%)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="flex items-center justify-between px-5 py-2 text-white"><span class="text-xl">✕</span><div class="text-center"><p class="font-bold text-sm">March 2026</p><p class="text-xs text-white/60">127 / 420</p></div><span class="opacity-0">✕</span></div>
+        <div class="flex-1 flex items-center justify-center px-6">
+          <div class="w-full aspect-[3/4] rounded-3xl thumb flex items-center justify-center rotate-[12deg]" style="box-shadow:0 20px 50px rgba(36,198,163,0.5)">
+            <span class="text-5xl relative">🏞️</span>
+            <span class="absolute top-6 left-6 border-4 font-extrabold text-2xl px-4 py-1 rounded-xl rotate-[-12deg] bg-white/90 z-10" style="border-color:#24C6A3;color:#24C6A3">KEEP</span>
+          </div>
+        </div>
+        <div class="text-center text-white pb-16"><p class="text-4xl mb-1">✓</p><p class="font-bold text-lg">Keep</p><p class="text-white/70 text-sm">Swipe right to keep</p></div>
+      </div></div><p class="cap">26 · Swipe Keep State</p></div>
+
+    <!-- 27 Swipe Session Complete -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(180deg,#6D5DFF,#4F7CFF)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-white text-center">
+          <div class="text-5xl mb-3">🎊</div>
+          <h1 class="text-3xl font-extrabold mb-6">Session complete</h1>
+          <div class="grid grid-cols-2 gap-3 w-full mb-4">
+            <div class="bg-white/15 backdrop-blur rounded-2xl p-4"><p class="text-3xl font-extrabold">50</p><p class="text-xs text-white/80">reviewed</p></div>
+            <div class="bg-white/15 backdrop-blur rounded-2xl p-4"><p class="text-3xl font-extrabold">18</p><p class="text-xs text-white/80">to delete</p></div>
+            <div class="bg-white/15 backdrop-blur rounded-2xl p-4"><p class="text-3xl font-extrabold">32</p><p class="text-xs text-white/80">kept</p></div>
+            <div class="bg-white/15 backdrop-blur rounded-2xl p-4"><p class="text-3xl font-extrabold">620<span class="text-lg">MB</span></p><p class="text-xs text-white/80">potential</p></div>
+          </div>
+        </div>
+        <div class="px-5 pb-10 space-y-3"><div class="btn bg-white" style="color:#4F7CFF">Review Deleted</div><div class="btn btn-ghost text-white">Continue Later</div></div>
+      </div></div><p class="cap">27 · Session Complete</p></div>
+
+    <!-- 28 Bookmarked Photos -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-1"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Bookmarked</h1></div>
+          <p class="text-sm text-ink-2 mb-3 ml-9">Decide later · 24 photos</p>
+          <div class="grid grid-cols-3 gap-2 flex-1 overflow-y-auto content-start">
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+            <div class="thumb aspect-square"><span class="absolute top-1 right-1 text-sm z-10">🔖</span></div>
+          </div>
+        </div>
+        <div class="p-4 bg-white border-t border-line"><div class="btn grad-primary btn-primary">Review Now</div></div>
+      </div></div><p class="cap">28 · Bookmarked Photos</p></div>
+
+    <div class="grp-title">F · Tools Tab</div>
+    <div class="grp-sub">Tools home · Compressor · Secret space · Widgets</div>
+
+    <!-- 29 Tools Home -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <h1 class="text-3xl font-extrabold pt-2 mb-4">Tools</h1>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="card p-4 relative"><span class="absolute top-3 right-3 text-xs">👑</span><div class="w-11 h-11 rounded-icon grad-premium flex items-center justify-center text-white text-xl mb-3">🎞️</div><p class="font-bold text-sm">Video Compressor</p><p class="text-xs text-ink-2">Shrink large videos</p></div>
+            <div class="card p-4 relative"><span class="absolute top-3 right-3 text-xs">🔒</span><div class="w-11 h-11 rounded-icon flex items-center justify-center text-white text-xl mb-3" style="background:#151827">🗝️</div><p class="font-bold text-sm">Secret Space</p><p class="text-xs text-ink-2">Private vault</p></div>
+            <div class="card p-4"><div class="w-11 h-11 rounded-icon bg-blue/10 flex items-center justify-center text-xl mb-3">📊</div><p class="font-bold text-sm">Widgets</p><p class="text-xs text-ink-2">Home screen</p></div>
+            <div class="card p-4"><div class="w-11 h-11 rounded-icon flex items-center justify-center text-xl mb-3" style="background:#FFF3DE">⚡</div><p class="font-bold text-sm">Charging Animation</p><p class="text-xs text-ink-2">Custom effects</p></div>
+          </div>
+          <div class="rounded-card p-5 grad-premium text-white mt-4"><p class="font-bold text-lg mb-1">Cleanly Pro</p><p class="text-white/80 text-sm mb-3">Unlock all tools & unlimited cleaning</p><div class="btn bg-white" style="height:46px;color:#6D5DFF">👑 Upgrade</div></div>
+        </div>
+        <div class="tabbar"><div class="tab"><div class="ic">🏠</div>Home</div><div class="tab"><div class="ic">✨</div>Clean</div><div class="tab"><div class="ic">🃏</div>Swipe</div><div class="tab active"><div class="ic">🧰</div>Tools</div></div>
+      </div></div><p class="cap">29 · Tools Home</p></div>
+
+    <!-- 30 Video Compressor -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Video Compressor</h1></div>
+          <div class="card p-2.5 flex items-center gap-3 mb-4"><div class="thumb w-16 h-16 flex items-center justify-center">🎬</div><div class="flex-1"><p class="font-bold text-sm">IMG_4821.MOV</p><p class="text-xs text-ink-2">2:14 · 850 MB</p></div></div>
+          <p class="font-bold mb-2.5">Compression quality</p>
+          <div class="space-y-2.5 mb-4">
+            <div class="card p-4 flex items-center justify-between border-2 border-line"><div><p class="font-bold text-sm">High Quality</p><p class="text-xs text-ink-2">~ 600 MB</p></div><span class="w-6 h-6 rounded-full border-2 border-line"></span></div>
+            <div class="card p-4 flex items-center justify-between border-2 border-blue"><div><p class="font-bold text-sm">Balanced</p><p class="text-xs text-ink-2">~ 320 MB · recommended</p></div><span class="w-6 h-6 rounded-full grad-primary flex items-center justify-center text-white text-xs">✓</span></div>
+            <div class="card p-4 flex items-center justify-between border-2 border-line"><div><p class="font-bold text-sm">Small Size</p><p class="text-xs text-ink-2">~ 180 MB</p></div><span class="w-6 h-6 rounded-full border-2 border-line"></span></div>
+          </div>
+          <div class="card p-4 flex items-center justify-around" style="background:linear-gradient(135deg,#DDF8F1,#fff)"><div class="text-center"><p class="text-xs text-ink-2">Original</p><p class="font-extrabold">850 MB</p></div><span class="text-xl">→</span><div class="text-center"><p class="text-xs text-ink-2">Compressed</p><p class="font-extrabold" style="color:#24C6A3">320 MB</p></div></div>
+        </div>
+        <div class="px-5 pb-10 pt-3"><div class="btn grad-primary btn-primary">Compress Video</div></div>
+      </div></div><p class="cap">30 · Video Compressor</p></div>
+
+    <!-- 31 Secret Space -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(180deg,#1a1e2e,#2a2f45)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-center text-white">
+          <div class="w-24 h-24 rounded-[28px] flex items-center justify-center text-5xl mb-6" style="background:rgba(255,255,255,0.1)">🗝️</div>
+          <span class="chip mb-3" style="background:linear-gradient(135deg,#6D5DFF,#B85CFF);color:#fff">👑 PRO</span>
+          <h1 class="text-2xl font-extrabold mb-2">Secret Space</h1>
+          <p class="text-white/70 leading-relaxed">Hide private photos and videos behind Face ID in an encrypted vault.</p>
+        </div>
+        <div class="px-5 pb-10"><div class="btn grad-premium btn-primary">Set Up Private Vault</div></div>
+      </div></div><p class="cap">31 · Secret Space</p></div>
+
+    <!-- 32 Widget Setup -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-4"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Storage Widget</h1></div>
+          <div class="space-y-3 flex-1">
+            <div class="card p-4 flex items-center gap-4"><div class="w-20 h-20 rounded-2xl grad-primary text-white flex flex-col items-center justify-center"><span class="font-extrabold text-lg">78%</span><span class="text-[9px]">used</span></div><div class="flex-1"><p class="font-bold text-sm">Storage Status</p><p class="text-xs text-ink-2">Live storage bar on home screen</p></div></div>
+            <div class="card p-4 flex items-center gap-4"><div class="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-white" style="background:linear-gradient(135deg,#FFC75A,#FF9F6E)"><span class="text-2xl">🧹</span><span class="text-[9px]">clean</span></div><div class="flex-1"><p class="font-bold text-sm">Daily Clean Reminder</p><p class="text-xs text-ink-2">Nudge to clean each day</p></div></div>
+            <div class="card p-4 flex items-center gap-4"><div class="w-20 h-20 rounded-2xl thumb flex items-center justify-center">🗓️</div><div class="flex-1"><p class="font-bold text-sm">On This Day</p><p class="text-xs text-ink-2">Memories from past years</p></div></div>
+          </div>
+        </div>
+        <div class="px-5 pb-10 pt-3"><div class="btn grad-primary btn-primary">Add Widget</div></div>
+      </div></div><p class="cap">32 · Widget Setup</p></div>
+
+    <div class="grp-title">G · Paywall</div>
+    <div class="grp-sub">First scan · Limit reached · Feature locked</div>
+
+    <!-- 33 First Scan Paywall -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:linear-gradient(180deg,#EEE9FF,#F6F8FC 45%)">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col overflow-y-auto">
+          <div class="flex justify-end pt-2"><span class="text-ink-3 text-xl">✕</span></div>
+          <div class="text-center mb-4"><div class="w-16 h-16 rounded-[20px] grad-premium flex items-center justify-center text-3xl mx-auto mb-3 text-white">👑</div><h1 class="text-2xl font-extrabold">Unlock unlimited cleaning</h1><p class="text-ink-2 text-sm mt-1">Clean your iPhone faster with Smart Clean Pro.</p></div>
+          <div class="rounded-card p-4 grad-premium text-white text-center mb-4"><p class="text-white/80 text-sm">You can clean today</p><p class="text-3xl font-extrabold">5.8 GB</p></div>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center gap-3 text-sm"><span style="color:#24C6A3">✓</span> Unlimited smart cleaning</div>
+            <div class="flex items-center gap-3 text-sm"><span style="color:#24C6A3">✓</span> Auto-select best photos</div>
+            <div class="flex items-center gap-3 text-sm"><span style="color:#24C6A3">✓</span> Unlimited swipe sessions</div>
+            <div class="flex items-center gap-3 text-sm"><span style="color:#24C6A3">✓</span> Video compressor</div>
+            <div class="flex items-center gap-3 text-sm"><span style="color:#24C6A3">✓</span> No ads</div>
+          </div>
+          <div class="flex gap-2.5 mb-4">
+            <div class="card p-3 flex-1 border-2 border-line text-center"><p class="text-xs text-ink-2">Weekly</p><p class="font-extrabold">$4.99</p></div>
+            <div class="card p-3 flex-1 border-2 border-blue text-center relative"><span class="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] grad-primary text-white px-2 py-0.5 rounded-full">BEST VALUE</span><p class="text-xs text-ink-2">Yearly</p><p class="font-extrabold">$29.99</p></div>
+          </div>
+        </div>
+        <div class="px-5 pb-8 pt-2">
+          <div class="btn grad-primary btn-primary mb-2">Start Free Trial</div>
+          <div class="btn btn-ghost" style="height:40px">Continue Limited</div>
+          <div class="flex justify-center gap-4 text-[11px] text-ink-3 mt-1"><span>Restore</span><span>Terms</span><span>Privacy</span></div>
+        </div>
+      </div></div><p class="cap">33 · First Scan Paywall</p></div>
+
+    <!-- 34 Limit Reached Paywall -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 rounded-full bg-surf-soft flex items-center justify-center text-4xl mb-5">🔒</div>
+          <h1 class="text-2xl font-extrabold mb-2">Daily limit reached</h1>
+          <p class="text-ink-2 mb-5">Upgrade to continue cleaning without waiting.</p>
+          <div class="card w-full p-4 mb-2"><div class="flex justify-between text-sm mb-2"><span class="font-semibold">Free items cleaned today</span><span class="font-bold text-danger">20 / 20</span></div><div class="h-2.5 rounded-full bg-surf-soft overflow-hidden"><div class="h-full w-full bg-danger"></div></div></div>
+        </div>
+        <div class="px-5 pb-10 space-y-3"><div class="btn grad-premium btn-primary">Unlock Unlimited</div><div class="btn btn-white">▶ Watch Ad to Continue</div></div>
+      </div></div><p class="cap">34 · Limit Reached</p></div>
+
+    <!-- 35 Feature Locked -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll" style="background:rgba(21,24,39,0.4)">
+        <div class="statusbar" style="color:#fff"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="flex-1"></div>
+        <div class="bg-white rounded-t-[28px] p-6 pb-10 text-center">
+          <div class="w-12 h-1.5 rounded-full bg-line mx-auto mb-5"></div>
+          <div class="w-16 h-16 rounded-[20px] grad-premium flex items-center justify-center text-3xl mx-auto mb-4 text-white">🎞️</div>
+          <h2 class="text-xl font-extrabold mb-2">Pro feature</h2>
+          <p class="text-ink-2 text-sm mb-6">Video Compressor is included in Cleanly Pro.</p>
+          <div class="space-y-3"><div class="btn grad-premium btn-primary">Upgrade to Pro</div><div class="btn btn-ghost">Not Now</div></div>
+        </div>
+      </div></div><p class="cap">35 · Feature Locked</p></div>
+
+    <div class="grp-title">H · Settings &nbsp;·&nbsp; I · States</div>
+    <div class="grp-sub">Settings · Photo access · Empty / error states</div>
+
+    <!-- 36 Settings -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col overflow-y-auto">
+          <div class="flex items-center gap-3 pt-2 mb-4 anim-row" style="animation-delay:.02s">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#151827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M15 18l-6-6 6-6"/></svg>
+            <h1 class="text-2xl font-extrabold tracking-tight">Settings</h1>
+          </div>
+
+          <!-- Pro card with shimmer -->
+          <div class="rounded-card p-4 grad-premium text-white flex items-center gap-3 mb-5 pro-card anim-row" style="animation-delay:.06s;box-shadow:0 12px 28px rgba(109,93,255,0.35)">
+            <div class="set-ic bg-white/20 backdrop-blur relative z-10">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 3L12 5l4.5 6L21 8l-1.6 10.2a1 1 0 0 1-1 .8H5.6a1 1 0 0 1-1-.8L3 8z"/></svg>
+            </div>
+            <div class="flex-1 relative z-10"><p class="font-bold">Cleanly Pro</p><p class="text-xs text-white/80">Active · renews Apr 2026</p></div>
+            <span class="text-sm font-semibold relative z-10 flex items-center gap-0.5">Manage
+              <svg class="w-4 h-4 chev" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </span>
+          </div>
+
+          <!-- Cleaning -->
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2 anim-row" style="animation-delay:.10s">Cleaning</p>
+          <div class="card mb-5 overflow-hidden anim-row" style="animation-delay:.13s">
+            <div class="set-row p-3 flex items-center gap-3 border-b border-line">
+              <span class="set-ic bg-blue/10 text-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="15" rx="3"/><circle cx="8.5" cy="9" r="1.6"/><path d="M4 17l4.5-4 3 2.5L15 11l5 5"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Photo Access</span>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-mint-soft" style="color:#159c82">Full</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="set-row p-3 flex items-center gap-3">
+              <span class="set-ic bg-mint/10" style="color:#24C6A3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.1 4.5.5-3.4 3 1 4.4L12 12.8 8 15l1-4.4-3.4-3 4.5-.5L12 3z"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Scan Preferences</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <!-- Support -->
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2 anim-row" style="animation-delay:.16s">Support</p>
+          <div class="card mb-5 overflow-hidden anim-row" style="animation-delay:.19s">
+            <div class="set-row p-3 flex items-center gap-3 border-b border-line">
+              <span class="set-ic" style="background:#FFF3DE;color:#E9922E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.8 2.5-2.8 2.5"/><path d="M12 17h.01"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Help Center</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="set-row p-3 flex items-center gap-3">
+              <span class="set-ic" style="background:#EAF0FF;color:#4F7CFF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Contact Us</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <!-- Legal -->
+          <p class="text-xs font-bold text-ink-3 uppercase tracking-wide mb-2 anim-row" style="animation-delay:.22s">Legal</p>
+          <div class="card overflow-hidden mb-4 anim-row" style="animation-delay:.25s">
+            <div class="set-row p-3 flex items-center gap-3 border-b border-line">
+              <span class="set-ic bg-surf-soft text-ink-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8 3.2-3.6"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Privacy Policy</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="set-row p-3 flex items-center gap-3 border-b border-line">
+              <span class="set-ic bg-surf-soft text-ink-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M13 3v5h5"/><path d="M9 13h6M9 16h4"/></svg></span>
+              <span class="flex-1 text-sm font-semibold">Terms of Service</span>
+              <svg class="w-4 h-4 chev text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="set-row p-3 flex items-center gap-3">
+              <span class="set-ic bg-blue/10 text-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span>
+              <span class="flex-1 text-sm font-semibold text-blue">Restore Purchase</span>
+            </div>
+          </div>
+
+          <p class="text-center text-[11px] text-ink-3 anim-row pb-2" style="animation-delay:.28s">Cleanly v2.4.0</p>
+        </div>
+      </div></div><p class="cap">36 · Settings</p></div>
+
+    <!-- 37 Photo Access Settings -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-4"><span class="text-2xl">‹</span><h1 class="text-xl font-extrabold">Photo Access</h1></div>
+          <div class="card p-4 mb-3 border-2 border-mint" style="border-color:#24C6A3"><div class="flex items-center gap-3"><span class="w-10 h-10 rounded-full grad-success flex items-center justify-center text-white">✓</span><div class="flex-1"><p class="font-bold text-sm">Full Access</p><p class="text-xs text-ink-2">Cleanly can scan your whole library</p></div><span class="w-6 h-6 rounded-full grad-success flex items-center justify-center text-white text-xs">✓</span></div></div>
+          <div class="card p-4 mb-4"><div class="flex items-center gap-3"><span class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#FFF3DE">⚠️</span><div class="flex-1"><p class="font-bold text-sm">Limited Access</p><p class="text-xs text-ink-2">Only selected photos are scanned</p></div><span class="w-6 h-6 rounded-full border-2 border-line"></span></div></div>
+          <div class="p-3 rounded-2xl bg-blue/10 text-sm text-ink-2 leading-relaxed">Full access lets Cleanly find all duplicates and free up more space. Your photos never leave your device.</div>
+        </div>
+        <div class="px-5 pb-10 pt-3"><div class="btn grad-primary btn-primary">Manage in Settings</div></div>
+      </div></div><p class="cap">37 · Photo Access</p></div>
+
+    <!-- 38 No Duplicates Found -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col">
+          <div class="flex items-center gap-3 pt-2 mb-3"><span class="text-2xl">‹</span><h1 class="text-lg font-extrabold">Duplicate Photos</h1></div>
+          <div class="flex-1 flex flex-col items-center justify-center text-center">
+            <div class="w-24 h-24 rounded-full grad-success flex items-center justify-center text-5xl mb-5 shadow-xl">✓</div>
+            <h1 class="text-2xl font-extrabold mb-1">No duplicates found</h1>
+            <p class="text-ink-2">Your photo library looks clean.</p>
+          </div>
+        </div>
+        <div class="px-5 pb-10"><div class="btn btn-white">Try Similar Photos</div></div>
+      </div></div><p class="cap">38 · No Duplicates</p></div>
+
+    <!-- 39 Permission Denied -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 rounded-full bg-surf-soft flex items-center justify-center text-4xl mb-5">🚫</div>
+          <h1 class="text-2xl font-extrabold mb-2">Photo access needed</h1>
+          <p class="text-ink-2 leading-relaxed">Allow access to scan your library and find storage you can free up.</p>
+        </div>
+        <div class="px-5 pb-10"><div class="btn grad-primary btn-primary">Open Settings</div></div>
+      </div></div><p class="cap">39 · Permission Denied</p></div>
+
+    <!-- 40 Scan Failed -->
+    <div class="frame"><div class="phone"><div class="notch"></div>
+      <div class="phone-scroll grad-bg">
+        <div class="statusbar"><span>9:41</span><span>􀙇 􀋦 􀛨</span></div>
+        <div class="body flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 rounded-full bg-danger-soft flex items-center justify-center text-4xl mb-5">⚠️</div>
+          <h1 class="text-2xl font-extrabold mb-2">Scan interrupted</h1>
+          <p class="text-ink-2 leading-relaxed">Something went wrong. Please try again.</p>
+        </div>
+        <div class="px-5 pb-10"><div class="btn grad-primary btn-primary">🔄 Scan Again</div></div>
+      </div></div><p class="cap">40 · Scan Failed</p></div>
+
+  </main>
+
+</body>
+</html>

@@ -27,12 +27,19 @@ export default function App() {
   const [editSent, setEditSent] = useState(null);
   const editFileRef = useRef(null);
   const [flashed, setFlashed] = useState({}); // name -> nonce
+  const [chat, setChat] = useState([]);
+  const [chatOpen, setChatOpen] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [images, setImages] = useState([]); // data URLs
   const [sending, setSending] = useState(false);
   const [lastSent, setLastSent] = useState(null);
   const fileRef = useRef(null);
   const bust = useRef(Date.now());
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat, chatOpen]);
 
   const readFiles = useCallback((fileList, setter) => {
     Array.from(fileList || []).forEach((file) => {
@@ -44,6 +51,14 @@ export default function App() {
   }, []);
   const addFiles = useCallback((fl) => readFiles(fl, setImages), [readFiles]);
   const addEditFiles = useCallback((fl) => readFiles(fl, setEditImages), [readFiles]);
+
+  const postPrompt = useCallback(async ({ prompt: p, images: imgs = [], targetFile = null }) => {
+    await fetch("/api/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: p, images: imgs, targetFile }),
+    });
+  }, []);
 
   const sendEdit = useCallback(async () => {
     const p = editPrompt.trim();
@@ -68,14 +83,6 @@ export default function App() {
     setEditSent(null);
   }, []);
 
-  const postPrompt = useCallback(async ({ prompt: p, images: imgs = [], targetFile = null }) => {
-    await fetch("/api/prompt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: p, images: imgs, targetFile }),
-    });
-  }, []);
-
   const sendPrompt = useCallback(async () => {
     const p = prompt.trim();
     if ((!p && images.length === 0) || sending) return;
@@ -94,13 +101,15 @@ export default function App() {
 
   const load = useCallback(async () => {
     try {
-      const [d, c] = await Promise.all([
+      const [d, c, ch] = await Promise.all([
         fetch("/api/designs").then((r) => r.json()),
         fetch("/api/config").then((r) => r.json()),
+        fetch("/api/chat").then((r) => r.json()),
       ]);
       setDesigns(d.designs || []);
       setOutputDir(d.outputDir || "designs");
       setConfig(c || { contextProjects: [] });
+      setChat(ch.chat || []);
     } catch (e) {
       console.error(e);
     }
@@ -118,6 +127,11 @@ export default function App() {
       load();
     });
     es.addEventListener("config", () => load());
+    es.addEventListener("chat", (ev) => {
+      const msg = JSON.parse(ev.data);
+      setChat((c) => [...c, msg]);
+      if (msg.role === "assistant") setChatOpen(true);
+    });
     return () => es.close();
   }, [load]);
 
@@ -259,6 +273,48 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <div className={`chat-panel ${chatOpen ? "open" : ""}`}>
+        <div className="chat-head" onClick={() => setChatOpen((o) => !o)}>
+          <span className="dot-ai" />
+          <span>Claude</span>
+          <div style={{ flex: 1 }} />
+          <span className="toggle">{chatOpen ? "▾" : "▸"}</span>
+        </div>
+        {chatOpen && (
+          <>
+            <div className="chat-body">
+              {chat.length === 0 && (
+                <div className="chat-empty">Câu trả lời và câu hỏi của Claude sẽ hiện ở đây.</div>
+              )}
+              {chat.map((m) => (
+                <div key={m.id} className={`bubble ${m.role} ${m.kind === "question" ? "question" : ""}`}>
+                  {m.targetFile && <div className="bubble-tag">sửa: {m.targetFile}</div>}
+                  {m.text && <div className="bubble-text">{m.text}</div>}
+                  {(m.images || []).length > 0 && (
+                    <div className="bubble-imgs">
+                      {m.images.map((p, i) => (
+                        <img key={i} src={`/${p}`} alt="" />
+                      ))}
+                    </div>
+                  )}
+                  {m.kind === "question" && <div className="q-hint">↓ Trả lời bên dưới</div>}
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="chat-input">
+              <input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendPrompt()}
+                placeholder="Trả lời Claude..."
+              />
+              <button onClick={sendPrompt} disabled={sending || !prompt.trim()}>Gửi</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

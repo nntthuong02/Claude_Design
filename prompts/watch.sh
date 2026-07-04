@@ -19,6 +19,7 @@ while true; do
       out="NEW_PROMPT id=$id :: $prompt"
       [ -n "$target" ] && out="$out :: EDIT=$target"
       [ -n "$images" ] && out="$out :: IMAGES=$images"
+      out="$out :: GUIDELINES=prompts/design-guidelines.md (đọc file này trước khi vẽ: icon SVG thật, không emoji, có animation, polish như Claude Design)"
       echo "$out"
     done < "$INBOX"
   fi

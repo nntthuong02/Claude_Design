@@ -52,6 +52,28 @@ Claude sẽ dùng Monitor chạy `prompts/watch.sh` — mỗi prompt bạn gửi
 
 Click vào một thẻ để phóng to → dưới đáy modal có ô prompt riêng. Gõ yêu cầu chỉnh sửa (kèm ảnh nếu muốn) → prompt gửi về Claude **có đính kèm tên file đó**, nên Claude biết là sửa đúng file đã có (đọc file → chỉ đổi phần yêu cầu → ghi đè), không tạo file mới. Canvas tự cập nhật ngay khi Claude sửa xong.
 
+### Khung chat 2 chiều với Claude
+
+Góc phải dưới canvas có khung chat nhỏ. Mỗi prompt bạn gửi và mỗi phản hồi của Claude đều hiện ở đây thành một luồng hội thoại:
+
+- Claude POST phản hồi về `/api/reply` → hiện bong bóng bên trái.
+- Nếu Claude **hỏi lại** (`kind:"question"`), bong bóng được làm nổi bật và bạn **trả lời thẳng trong ô chat** — không cần quay lại terminal.
+- Câu trả lời của bạn đi qua đúng luồng prompt, Claude nhận được và xử lý tiếp.
+
+Nhờ vậy vòng lặp thiết kế diễn ra hoàn toàn trên trình duyệt: bạn yêu cầu → Claude làm/hỏi lại → bạn xem kết quả + trả lời → lặp lại.
+
+### Chất lượng thị giác "Claude Design"
+
+Mỗi task gửi từ canvas tự đính kèm `prompts/design-guidelines.md` — bộ quy tắc buộc Claude vẽ đẹp thay vì UI code thô:
+
+- **Icon vẽ bằng SVG thật** (line icon kiểu Lucide/SF Symbols), tuyệt đối không dùng emoji làm icon.
+- **Illustration bằng hình khối SVG + gradient**, không dùng emoji minh hoạ.
+- **Chiều sâu**: shadow nhiều lớp, gradient mượt, viền mảnh, glass blur.
+- **Animation tinh tế**: fade/slide-in, shimmer, pulse, progress ring, hover micro-interaction.
+- **Typography & spacing** chuẩn hệ 4/8pt.
+
+Sửa `prompts/design-guidelines.md` để tinh chỉnh phong cách chung. File này là nguồn chuẩn dùng cho cả lệnh `/design` trong terminal lẫn prompt từ browser.
+
 ## Vibe một dự án mới (từ con số 0)
 
 Khi bắt đầu một dự án hoàn toàn mới, bạn chưa có design system để tham chiếu. Có 2 cách:
