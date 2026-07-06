@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Local Figma-like canvas để xem thiết kế UI do Claude Code sinh ra, có nhận biết context dự án.",
   "scripts": {
+    "setup": "npm install && node -e \"console.log('\\n✅ Cài xong. Bước tiếp:\\n  1. npm run dev   (bật server + canvas)\\n  2. Mở http://localhost:5175\\n  3. Mở Claude Code trong thư mục này — Claude sẽ đọc CLAUDE.md và tự bật watcher\\n')\"",
     "server": "node server/index.js",
     "canvas": "vite --config canvas/vite.config.js",
     "dev": "concurrently -n server,canvas -c green,cyan \"npm run server\" \"npm run canvas\"",

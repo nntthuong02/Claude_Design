@@ -20,6 +20,20 @@ Lệnh này chạy song song:
 
 Khi Claude tạo/sửa file trong thư mục output, canvas tự reload — thẻ vừa đổi sẽ nháy sáng.
 
+## Chạy trên máy mới (clone từ git)
+
+Git chỉ mang *mã nguồn* — không mang `node_modules`, không mang tiến trình đang chạy, và **không mang chính Claude Code**. Nên máy mới cần 3 bước:
+
+```bash
+git clone <repo> && cd Claude_Design
+npm run setup        # = npm install + in hướng dẫn
+npm run dev          # bật server + canvas
+```
+
+Rồi **mở Claude Code trong thư mục này**. Claude sẽ tự đọc `CLAUDE.md` để hiểu luồng canvas ↔ AI và **tự bật watcher** (mắt xích nhận prompt từ trình duyệt). Nếu Claude chưa bật, chỉ cần bảo: *"bật watcher theo dõi prompts/inbox.jsonl"*.
+
+Vì sao không "tự kết nối" 100%: phần "AI vẽ" chính là Claude Code chạy trên máy bạn, không phải file trong repo. Bạn luôn phải tự mở Claude Code — đây là điểm khác các dịch vụ đặt AI trên cloud.
+
 ## Quy trình
 
 1. Sửa `design.config.json`, trỏ `contextProjects[].path` tới (các) dự án bạn muốn Claude tham chiếu design system.
